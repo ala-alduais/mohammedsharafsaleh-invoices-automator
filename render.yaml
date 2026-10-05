@@ -2,7 +2,6 @@ services:
   - type: worker
     name: invoice-automator-bot
     runtime: docker
-    repo: .
     branch: main
     autoDeploy: true
     envVars:
