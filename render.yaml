@@ -1,0 +1,26 @@
+services:
+  - type: worker
+    name: invoice-automator-bot
+    runtime: docker
+    repo: .
+    branch: main
+    autoDeploy: true
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ALLOWED_TELEGRAM_USER_ID
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: VISION_MODEL
+        value: qwen/qwen3.8-27b
+      - key: TEXT_MODEL
+        value: qwen/qwen3.8-27b
+      - key: DECISION_MODEL
+        value: openai/gpt-oss-120b
+      - key: TAX_RATE
+        value: 0.15
+      - key: AUTO_SEND
+        value: true
+      - key: MAX_OUTPUT_TOKENS
+        value: 900

@@ -1,0 +1,48 @@
+You are an expert AI software architect and Python engineer. We are building the FIRST STAGE of an invoice ingestion pipeline. This stage does NOT connect to any ERP yet — it's a learning/testing build. The final output is simply a file sent back to the user on Telegram, not a live Odoo sync.
+
+### Problem Context
+The business owner receives paper receipts (photos) and digital PDFs from suppliers. He wants to upload them via Telegram, have an AI extract the invoice data, review/confirm the batch conversationally, and get back a clean spreadsheet file he can check manually. Odoo/Stream.sa integration comes in a later phase — skip it entirely for now.
+
+### Target Architecture & Tech Stack
+
+1. **Interface Layer (Telegram Bot) — bot.py:**
+   - Built with `python-telegram-bot` (v20+ async).
+   - Debounce queue (3-second buffer): if the user uploads multiple receipts at once, collect them all and process as a single batch.
+   - Restricted strictly to the owner's `ALLOWED_TELEGRAM_USER_ID`.
+   - After extraction, sends the user a text summary of all extracted invoices in the batch (numbered list: supplier, total, date, "⚠️ needs review" flag if applicable).
+   - Waits for a conversational confirmation reply, passes it to the Decision Agent.
+   - Once confirmed, builds the output file for only the confirmed invoices and sends it back to the user as a Telegram document (`send_document`), then deletes the temp file.
+
+2. **AI & Extraction Layer (Groq API) — extractor.py:**
+   - **Vision Extractor:** Uses `qwen/qwen3.8-27b` via Groq's multimodal API (`response_format={"type": "json_object"}`). Extracts:
+     * `supplier_name` (Note: the buyer is always "مؤسسة أقواس العارض" — never confuse buyer and supplier)
+     * `ref_number` (bill reference number)
+     * `invoice_date` (YYYY-MM-DD)
+     * `payment_method` (نقدي، آجل، مدى...)
+     * `lines`: list of `{name, quantity, price_unit, line_total}`
+     * `discount`, `tax_amount` (15%), `grand_total`
+   - **Math Sanity Check:** compute `sum(line_total) + tax_amount - discount` and compare to extracted `grand_total`. If they don't reconcile within a small tolerance, mark the invoice `needs_review: true` — still include it in the summary, just flagged.
+   - **QR Code Fast Path:** use `pyzbar` / `cv2` to decode ZATCA QR codes when present, to cross-check vendor, total, and tax numbers.
+   - Also handles PDF-to-image conversion via PyMuPDF so both photos and PDFs go through the same vision pipeline.
+
+3. **Confirmation Layer — decision_agent.py:**
+   - Uses `openai/gpt-oss-120b` on Groq. Given the user's free-text reply (e.g. "أكد الكل", "اعتمد بس الأولى والثانية", "أكد الكل ما عدا 3"), parses it into:
+     `{confirm_all: bool, confirmed_indices: list[int], excluded_indices: list[int]}`
+
+4. **Output Layer — file_generator.py (temporary, replaces ERP integration for now):**
+   - Takes the list of confirmed invoices (post-decision-agent filtering).
+   - Builds a single `.xlsx` file using `openpyxl` or `pandas`, one row per line item, with invoice-level fields (supplier, ref_number, invoice_date, payment_method, needs_review) repeated on each of that invoice's rows, plus `quantity`, `price_unit`, `line_total`, `discount`, `tax_amount`, `grand_total` columns.
+   - Saves it to a temp path, returns the path to bot.py for sending, and is deleted after sending.
+   - Keep this file simple and isolated — its whole job is to be swapped out later for an `stream_client.py` that pushes to Odoo instead, without touching the other files.
+
+### Directory Structure to Implement
+
+invoice_automator/
+ ├── .env.example
+ ├── requirements.txt
+ ├── bot.py
+ ├── extractor.py
+ ├── decision_agent.py
+ └── file_generator.py
+
+Build this now, one file at a time, starting with requirements.txt and .env.example, then extractor.py, then decision_agent.py, then file_generator.py, then bot.py wiring it all together.

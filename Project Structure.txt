@@ -1,0 +1,10 @@
+invoice_automator/
+ ├── .env.example
+ ├── requirements.txt
+ ├── bot.py              # Async Telegram polling, debounce handler, session management,
+ │                        # sends back the output file after confirmation
+ ├── extractor.py         # Groq Qwen Vision + PyMuPDF conversion + math sanity check
+ │                        # + optional ZATCA QR decoder
+ ├── decision_agent.py    # Groq GPT-OSS-120B parser for conversational confirmations
+ └── file_generator.py    # Builds an Excel (.xlsx) file from confirmed invoices
+                           # (replaces stream_client.py for now — no Odoo yet)
