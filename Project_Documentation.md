@@ -4,7 +4,7 @@
 Invoice Automator – Telegram-Based Invoice Extraction and Excel Reporting System
 
 ## 2. Student/Author
-Mohammed Sharaf Saleh  
+Ala zaed sultan al-duais  
 Internship Project – Implementing Course Knowledge in a Real-World Use Case
 
 ## 3. Problem Statement
