@@ -1,0 +1,22 @@
+app = "invoices-automator"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PYTHONUNBUFFERED = "1"
+  AUTO_SEND = "true"
+  VISION_MODEL = "qwen/qwen3.8-27b"
+  TEXT_MODEL = "qwen/qwen3.8-27b"
+  DECISION_MODEL = "openai/gpt-oss-120b"
+  TAX_RATE = "0.15"
+  MAX_OUTPUT_TOKENS = "900"
+
+[processes]
+  app = "python bot.py"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
